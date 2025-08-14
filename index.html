@@ -1,756 +1,590 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#e0eafc" />
-    <title>Dynamic Quiz Taker Application</title>
-    <!-- Bootstrap CSS -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-      rel="stylesheet" />
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <!-- html2pdf.js -->
-    <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
-    <!-- GSAP for animations -->
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
-    <!-- Custom CSS -->
+    <title>क्विज</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
       body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        background: linear-gradient(135deg, #e0eafc, #cfdef3);
-        min-height: 100vh;
+        transition: background-color 0.3s, color 0.3s;
+      }
+      .dark {
+        background-color: #1f2937;
+        color: #f3f4f6;
+      }
+      .light {
+        background-color: #f9fafb;
+        color: #111827;
+      }
+      .card {
+        background: #ffffff;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: opacity 0.3s ease-in-out;
+      }
+      .dark .card {
+        background: #374151;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      }
+      .option-label {
+        transition: background-color 0.2s;
+        border-radius: 6px;
+      }
+      .option-label:hover {
+        background-color: #e5e7eb;
+      }
+      .dark .option-label:hover {
+        background-color: #4b5563;
+      }
+      .option-label.correct {
+        background-color: #d1fae5;
+      }
+      .dark .option-label.correct {
+        background-color: #10b981;
+      }
+      .option-label.incorrect {
+        background-color: #fee2e2;
+      }
+      .dark .option-label.incorrect {
+        background-color: #ef4444;
+      }
+      button {
+        transition: transform 0.2s, background-color 0.2s;
+      }
+      button:hover {
+        transform: scale(1.05);
+      }
+      .fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      .timer-circle {
+        width: 50px;
+        height: 50px;
+        border: 4px solid #e5e7eb;
+        border-top-color: #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        display: inline-block;
+      }
+      .dark .timer-circle {
+        border-color: #4b5563;
+        border-top-color: #60a5fa;
+      }
+      .timer-circle.paused {
+        animation: none;
+        border: 4px solid #3b82f6;
+      }
+      .dark .timer-circle.paused {
+        border: 4px solid #60a5fa;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .modal {
+        background: rgba(0, 0, 0, 0.5);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 20px;
-        transition: background 0.5s;
-      }
-      #next {
-        margin-top: 40px;
-      }
-      #quiz-container,
-      #welcome-container,
-      #result-container {
-        background: white;
-        border-radius: 15px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        padding: 30px;
-        max-width: 700px;
-        width: 100%;
-      }
-      .question {
-        font-size: 1.5rem;
-        font-weight: 600;
-        margin-bottom: 20px;
-        color: #333;
-      }
-      .option {
-        background: #f8f9fa;
-        padding: 15px;
-        margin-bottom: 10px;
-        border-radius: 8px;
-        transition: transform 0.2s;
-        cursor: pointer;
-      }
-      .option:hover {
-        transform: translateX(5px);
-      }
-      .option input {
-        display: none;
-      }
-      .option.selected {
-        background: #d4edda;
-        border: 2px solid #155724;
-      }
-      #result {
-        font-weight: bold;
-        margin: 20px 0;
-        padding: 15px;
-        border-radius: 8px;
-      }
-      #result.correct {
-        background: #d4edda;
-        color: #155724;
-      }
-      #result.incorrect {
-        background: #f8d7da;
-        color: #721c24;
-      }
-      #explanation {
-        margin-top: 15px;
-        padding: 15px;
-        background: #e9ecef;
-        border-radius: 8px;
-        color: #333;
-      }
-      .progress {
-        height: 10px;
-        margin-bottom: 20px;
-      }
-      .btn-primary {
-        background-color: #007bff;
-        border: none;
-        padding: 10px 20px;
-        transition: background 0.3s;
-        width: fit-content;
-      }
-      .btn-primary:hover {
-        background-color: #0056b3;
-      }
-      .btn:disabled {
-        cursor: not-allowed;
-        opacity: 0.6;
-      }
-      #theme-toggle,
-      #sound-toggle {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-      }
-      #sound-toggle {
-        right: 150px;
-      }
-      .dark-theme {
-        background: linear-gradient(135deg, #2c3e50, #4a5568);
-        color: #f8f9fa;
-      }
-      .dark-theme #quiz-container,
-      .dark-theme #welcome-container,
-      .dark-theme #result-container,
-      .dark-theme #question {
-        background: #1a202c;
-        color: #f8f9fa;
-      }
-      .dark-theme .option {
-        background: #2d3748;
-      }
-      .dark-theme .option:hover {
-        background: #4a5568;
-      }
-      .dark-theme .option.selected {
-        background: #2d6a4f;
-        border: 2px solid #38a169;
-      }
-      .dark-theme #explanation {
-        background: #4a5568;
-        color: #f8f9fa;
-      }
-      #timer {
-        font-weight: bold;
-        color: #333;
-        margin-bottom: 10px;
-      }
-      #timer.warning {
-        color: #dc3545;
-        animation: flash 1s infinite;
-      }
-      @keyframes flash {
-        50% {
-          opacity: 0.5;
-        }
-      }
-      #loading-spinner {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        display: none;
-      }
-      .badge {
-        font-size: 1.2rem;
-        margin: 10px 0;
-        color: #fff;
-      }
-      #result-table {
-        margin-top: 20px;
-      }
-      #result-chart {
-        max-height: 300px;
-      }
-      #upload-error {
-        color: #dc3545;
-        margin-top: 10px;
-        display: none;
+        z-index: 50;
       }
     </style>
   </head>
-  <body>
-    <button
-      id="theme-toggle"
-      class="btn btn-secondary"
-      aria-label="Toggle Theme">
-      Toggle Theme
-    </button>
-    <button
-      id="sound-toggle"
-      class="btn btn-secondary"
-      aria-label="Toggle Sound">
-      Sound: On
-    </button>
-    <div id="loading-spinner" class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Loading...</span>
-    </div>
-    <div id="welcome-container" class="d-none">
-      <h1 class="text-center mb-4">क्विज में आपका स्वागत है!</h1>
-      <p>
-        निर्देश: इस क्विज में कुल <span id="total-questions"></span> प्रश्न हैं।
-        कोई नेगेटिव मार्किंग नहीं है।
-      </p>
-      <div class="mb-3">
-        <label for="user-name" class="form-label">आपका नाम:</label>
-        <input
-          type="text"
-          id="user-name"
-          class="form-control"
-          placeholder="नाम दर्ज करें"
-          aria-label="User name" />
-      </div>
-      <div class="mb-3">
-        <label for="time-per-question" class="form-label"
-          >प्रति प्रश्न समय (सेकंड):</label
-        >
-        <input
-          type="number"
-          id="time-per-question"
-          class="form-control"
-          min="10"
-          max="120"
-          value="30"
-          aria-label="Time per question" />
-      </div>
-      <div class="mb-3">
-        <label for="quiz-upload" class="form-label"
-          >अपनी क्विज JSON अपलोड करें:</label
-        >
-        <input
-          type="file"
-          id="quiz-upload"
-          class="form-control"
-          accept=".json"
-          aria-label="Upload quiz JSON" />
-        <div id="upload-error" role="alert"></div>
-      </div>
-      <button id="start-quiz" class="btn btn-primary w-100">
-        क्विज शुरू करें
-      </button>
-      <div id="share-url" class="mt-3 text-center d-none">
-        <p>क्विज शेयर करें: <a id="share-link" href="#" target="_blank"></a></p>
-        <button id="copy-link" class="btn btn-secondary mt-2">
-          लिंक कॉपी करें
+  <body class="light font-sans">
+    <div class="container mx-auto p-6 max-w-2xl">
+      <!-- Header Section -->
+      <div class="flex justify-between mb-6">
+        <button
+          id="themeToggle"
+          class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+          थीम बदलें
+        </button>
+        <button
+          id="soundToggle"
+          class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+          ध्वनि: चालू
         </button>
       </div>
-    </div>
-    <div id="quiz-container" class="d-none">
-      <h1 class="text-center mb-4">डायनामिक क्विज</h1>
-      <div class="progress">
+
+      <!-- Loading Section -->
+      <div id="loading" class="text-center text-lg fade-in">
+        लोड हो रहा है...
+      </div>
+
+      <!-- Welcome Section -->
+      <div id="welcomeSection" class="hidden card p-6 fade-in">
+        <h1 class="text-3xl font-bold mb-4 text-center">
+          क्विज में आपका स्वागत है!
+        </h1>
+        <p class="mb-4 text-center">
+          निर्देश: इस क्विज में कुल <span id="totalQuestions"></span> प्रश्न
+          हैं। कोई नेगेटिव मार्किंग नहीं है।
+        </p>
+        <div class="mb-4">
+          <label class="block mb-2 font-semibold">आपका नाम:</label>
+          <input
+            id="userName"
+            type="text"
+            class="border p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500 invalid:border-red-500"
+            placeholder="अपना नाम दर्ज करें"
+            required />
+        </div>
+        <div class="mb-4">
+          <label class="block mb-2 font-semibold"
+            >प्रति प्रश्न समय (सेकंड):</label
+          >
+          <input
+            id="timePerQuestion"
+            type="number"
+            min="10"
+            class="border p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value="30" />
+        </div>
+        <div class="mb-4">
+          <label class="block mb-2 font-semibold"
+            >अपनी क्विज JSON अपलोड करें:</label
+          >
+          <input
+            id="quizUpload"
+            type="file"
+            accept=".json"
+            class="border p-3 rounded-lg w-full" />
+        </div>
+        <button
+          id="startQuiz"
+          class="bg-blue-600 text-white px-6 py-3 rounded-lg w-full hover:bg-blue-700"
+          disabled>
+          क्विज शुरू करें
+        </button>
+        <div class="mt-6">
+          <p class="font-semibold">क्विज शेयर करें:</p>
+          <input
+            id="shareLink"
+            type="text"
+            class="border p-3 rounded-lg w-full mt-2 bg-gray-100 dark:bg-gray-700"
+            readonly
+            value="https://example.com/quiz" />
+          <button
+            id="copyLink"
+            class="bg-gray-600 text-white px-4 py-2 rounded-lg mt-2 hover:bg-gray-700">
+            लिंक कॉपी करें
+          </button>
+        </div>
+      </div>
+
+      <!-- Quiz Section -->
+      <div id="quizSection" class="hidden card p-6 fade-in">
+        <h2 class="text-2xl font-bold mb-4 text-center">डायनामिक क्विज</h2>
         <div
-          id="progress-bar"
-          class="progress-bar bg-success"
-          role="progressbar"
-          style="width: 0%"></div>
+          class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-4">
+          <div
+            id="progressBar"
+            class="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+            style="width: 0%"></div>
+        </div>
+        <p class="text-center mb-4">
+          प्रश्न <span id="currentQuestion">1</span> /
+          <span id="totalQuestionsQuiz"></span>
+        </p>
+        <div id="questionContainer" class="mb-4"></div>
+        <div class="flex justify-center mb-4">
+          <span id="timer" class="text-lg font-semibold mr-2">30</span>
+          <span id="timerCircle" class="timer-circle"></span>
+        </div>
+        <button
+          id="nextQuestion"
+          class="bg-blue-600 text-white px-6 py-3 rounded-lg w-full hover:bg-blue-700">
+          अगला प्रश्न
+        </button>
+        <div
+          id="explanation"
+          class="mt-4 hidden text-gray-700 dark:text-gray-300 p-4 rounded-lg bg-gray-100 dark:bg-gray-700"></div>
       </div>
-      <div id="timer">30</div>
-      <div id="question" class="question"></div>
-      <div id="options" class="options"></div>
-      <div class="d-flex justify-content-end mt-3">
-        <button id="next" class="btn btn-primary" disabled>अगला प्रश्न</button>
+
+      <!-- Result Section -->
+      <div id="resultSection" class="hidden card p-6 fade-in">
+        <h2 class="text-2xl font-bold mb-4 text-center">क्विज रिजल्ट</h2>
+        <p class="text-center">आपका स्कोर: <span id="score"></span></p>
+        <p class="text-center mb-4">कुल समय: <span id="totalTime"></span></p>
+        <table class="w-full mt-4 border">
+          <thead>
+            <tr class="bg-gray-200 dark:bg-gray-700">
+              <th class="border p-2">प्रश्न</th>
+              <th class="border p-2">आपका उत्तर</th>
+              <th class="border p-2">सही उत्तर</th>
+              <th class="border p-2">परिणाम</th>
+            </tr>
+          </thead>
+          <tbody id="resultTable"></tbody>
+        </table>
+        <div class="mt-6 flex justify-center space-x-4">
+          <button
+            id="downloadReport"
+            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+            रिपोर्ट डाउनलोड करें
+          </button>
+          <button
+            id="shareResult"
+            class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
+            रिजल्ट शेयर करें
+          </button>
+          <button
+            id="tryAgain"
+            class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+            फिर से ट्राई करें
+          </button>
+        </div>
       </div>
-      <div id="result"></div>
-      <div id="explanation"></div>
-      <div id="score" class="text-center mt-4"></div>
-    </div>
-    <div id="result-container" class="d-none">
-      <h1 class="text-center mb-4">क्विज रिजल्ट</h1>
-      <div id="badge" class="text-center"></div>
-      <h3>आपका स्कोर: <span id="final-score"></span></h3>
-      <p>कुल समय: <span id="total-time"></span></p>
-      <canvas id="result-chart"></canvas>
-      <table class="table table-bordered" id="result-table">
-        <thead>
-          <tr>
-            <th>प्रश्न</th>
-            <th>आपका उत्तर</th>
-            <th>सही उत्तर</th>
-            <th>परिणाम</th>
-          </tr>
-        </thead>
-        <tbody id="result-table-body"></tbody>
-      </table>
-      <div class="d-flex justify-content-between">
-        <button id="download-pdf" class="btn btn-primary">
-          रिपोर्ट डाउनलोड करें
-        </button>
-        <button id="share-result" class="btn btn-primary">
-          रिजल्ट शेयर करें
-        </button>
-        <button id="retry-quiz" class="btn btn-primary">
-          फिर से ट्राई करें
-        </button>
+
+      <!-- Confirmation Modal -->
+      <div id="confirmModal" class="modal hidden">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
+          <p class="mb-4">क्या आप वाकई क्विज को फिर से शुरू करना चाहते हैं?</p>
+          <div class="flex justify-end space-x-4">
+            <button
+              id="confirmTryAgain"
+              class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+              हाँ
+            </button>
+            <button
+              id="cancelTryAgain"
+              class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
+              नहीं
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Bootstrap JS and Popper.js -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-      let quizData;
+      let quizData = [];
       let currentQuestionIndex = 0;
-      let score = 0;
-      let timer;
-      let timeLeft;
-      let totalTime = 0;
       let userAnswers = [];
-      let userName = "";
-      let TIME_PER_QUESTION;
-      let soundEnabled = true;
-      let quizUrl = "";
+      let score = 0;
+      let totalTimeTaken = 0;
+      let timePerQuestion = 30;
+      let timerInterval;
+      let isSoundOn = true;
+      let isDarkTheme = false;
+      let timeLeft;
 
-      const welcomeContainer = document.getElementById("welcome-container");
-      const quizContainer = document.getElementById("quiz-container");
-      const resultContainer = document.getElementById("result-container");
-      const questionEl = document.getElementById("question");
-      const optionsEl = document.getElementById("options");
-      const nextBtn = document.getElementById("next");
-      const resultEl = document.getElementById("result");
-      const explanationEl = document.getElementById("explanation");
-      const scoreEl = document.getElementById("score");
-      const progressBar = document.getElementById("progress-bar");
-      const timerEl = document.getElementById("timer");
-      const themeToggle = document.getElementById("theme-toggle");
-      const soundToggle = document.getElementById("sound-toggle");
-      const startQuizBtn = document.getElementById("start-quiz");
-      const userNameInput = document.getElementById("user-name");
-      const timePerQuestionInput = document.getElementById("time-per-question");
-      const totalQuestionsEl = document.getElementById("total-questions");
-      const finalScoreEl = document.getElementById("final-score");
-      const totalTimeEl = document.getElementById("total-time");
-      const resultTableBody = document.getElementById("result-table-body");
-      const downloadPdfBtn = document.getElementById("download-pdf");
-      const shareResultBtn = document.getElementById("share-result");
-      const retryQuizBtn = document.getElementById("retry-quiz");
-      const badgeEl = document.getElementById("badge");
-      const loadingSpinner = document.getElementById("loading-spinner");
-      const quizUpload = document.getElementById("quiz-upload");
-      const uploadError = document.getElementById("upload-error");
-      const shareUrl = document.getElementById("share-url");
-      const shareLink = document.getElementById("share-link");
-      const copyLinkBtn = document.getElementById("copy-link");
+      const welcomeSection = document.getElementById("welcomeSection");
+      const quizSection = document.getElementById("quizSection");
+      const resultSection = document.getElementById("resultSection");
+      const loading = document.getElementById("loading");
+      const totalQuestionsSpan = document.getElementById("totalQuestions");
+      const totalQuestionsQuiz = document.getElementById("totalQuestionsQuiz");
+      const currentQuestionSpan = document.getElementById("currentQuestion");
+      const quizUpload = document.getElementById("quizUpload");
+      const startQuizBtn = document.getElementById("startQuiz");
+      const userNameInput = document.getElementById("userName");
+      const timePerQuestionInput = document.getElementById("timePerQuestion");
+      const questionContainer = document.getElementById("questionContainer");
+      const timerDisplay = document.getElementById("timer");
+      const timerCircle = document.getElementById("timerCircle");
+      const nextQuestionBtn = document.getElementById("nextQuestion");
+      const explanationDiv = document.getElementById("explanation");
+      const scoreDisplay = document.getElementById("score");
+      const totalTimeDisplay = document.getElementById("totalTime");
+      const resultTable = document.getElementById("resultTable");
+      const themeToggle = document.getElementById("themeToggle");
+      const soundToggle = document.getElementById("soundToggle");
+      const copyLinkBtn = document.getElementById("copyLink");
+      const downloadReportBtn = document.getElementById("downloadReport");
+      const shareResultBtn = document.getElementById("shareResult");
+      const tryAgainBtn = document.getElementById("tryAgain");
+      const confirmModal = document.getElementById("confirmModal");
+      const confirmTryAgain = document.getElementById("confirmTryAgain");
+      const cancelTryAgain = document.getElementById("cancelTryAgain");
+      const progressBar = document.getElementById("progressBar");
 
-      // Sound effects
+      // Audio for feedback
       const correctSound = new Audio(
-        "https://www.soundjay.com/buttons/sounds/button-3.mp3"
+        "https://www.soundjay.com/buttons/beep-01a.mp3"
       );
       const incorrectSound = new Audio(
-        "https://www.soundjay.com/buttons/sounds/button-4.mp3"
+        "https://www.soundjay.com/buttons/beep-02.mp3"
       );
 
-      // Shuffle array function
-      function shuffle(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [array[i], array[j]] = [array[j], array[i]];
-        }
-        return array;
-      }
-
-      // Sanitize input to prevent XSS
-      function sanitize(str) {
-        const div = document.createElement("div");
-        div.textContent = str;
-        return div.innerHTML;
-      }
-
-      // Validate JSON structure
-      function validateQuizData(data) {
-        if (!data || !data.questions || !Array.isArray(data.questions)) {
-          return false;
-        }
-        return data.questions.every(
-          (q) =>
-            q.id &&
-            q.question &&
-            q.options &&
-            q.answer &&
-            q.explanation &&
-            Object.keys(q.options).length === 4 &&
-            ["a", "b", "c", "d"].includes(q.answer)
-        );
-      }
-
-      function loadQuestion() {
-        if (!quizData || !quizData.questions) {
-          questionEl.textContent = "क्विज डेटा लोड करने में त्रुटि!";
-          return;
-        }
-        const totalQuestions = quizData.questions.length;
-        if (currentQuestionIndex >= totalQuestions) {
-          showResult();
-          return;
-        }
-        const q = quizData.questions[currentQuestionIndex];
-        questionEl.innerHTML = `${currentQuestionIndex + 1}. ${sanitize(
-          q.question
-        )}`;
-        optionsEl.innerHTML = "";
-        const optionKeys = shuffle(Object.keys(q.options));
-        optionKeys.forEach((opt) => {
-          const div = document.createElement("div");
-          div.className = "option";
-          div.setAttribute("role", "button");
-          div.setAttribute("tabindex", "0");
-          div.innerHTML = `
-                    <input type="radio" name="answer" value="${opt}" id="${opt}">
-                    <label for="${opt}">${opt}) ${sanitize(
-            q.options[opt]
-          )}</label>
-                `;
-          div.addEventListener("click", () => selectOption(opt, div));
-          div.addEventListener("keydown", (e) => {
-            if (e.key === "Enter" || e.key === " ") selectOption(opt, div);
-          });
-          optionsEl.appendChild(div);
-        });
-        resultEl.textContent = "";
-        resultEl.className = "";
-        explanationEl.textContent = "";
-        nextBtn.disabled = true;
-        updateProgress(totalQuestions);
-        startTimer();
-        gsap.from(".option", {
-          opacity: 0,
-          y: 20,
-          stagger: 0.1,
-          duration: 0.5,
-        });
-      }
-
-      function updateProgress(totalQuestions) {
-        const progress = ((currentQuestionIndex + 1) / totalQuestions) * 100;
-        progressBar.style.width = `${progress}%`;
-        progressBar.setAttribute("aria-valuenow", progress);
-      }
-
-      function startTimer() {
-        clearInterval(timer);
-        timeLeft = TIME_PER_QUESTION;
-        timerEl.textContent = timeLeft;
-        timerEl.className = "";
-        timer = setInterval(() => {
-          timeLeft--;
-          totalTime++;
-          timerEl.textContent = timeLeft;
-          if (timeLeft <= 5) timerEl.className = "warning";
-          if (timeLeft <= 0) {
-            clearInterval(timer);
-            userAnswers.push({
-              question: currentQuestionIndex,
-              selected: null,
-              correct: false,
-            });
-            resultEl.textContent = "समय समाप्त!";
-            resultEl.className = "incorrect";
-            if (soundEnabled) incorrectSound.play();
-            explanationEl.textContent =
-              quizData.questions[currentQuestionIndex].explanation;
-            nextBtn.disabled = false;
-            optionsEl
-              .querySelectorAll(".option")
-              .forEach((div) => (div.style.pointerEvents = "none"));
-          }
-        }, 1000);
-      }
-
-      function selectOption(opt, div) {
-        clearInterval(timer);
-        document
-          .querySelectorAll(".option")
-          .forEach((d) => d.classList.remove("selected"));
-        div.classList.add("selected");
-        document.getElementById(opt).checked = true;
-        checkAnswer(opt);
-      }
-
-      function checkAnswer(userAnswer) {
-        const correctAnswer = quizData.questions[currentQuestionIndex].answer;
-        const isCorrect = userAnswer === correctAnswer;
-        if (isCorrect) {
-          resultEl.textContent = "सही उत्तर!";
-          resultEl.className = "correct";
-          score++;
-          if (soundEnabled) correctSound.play();
-        } else {
-          resultEl.textContent = userAnswer ? "गलत उत्तर!" : "समय समाप्त!";
-          resultEl.className = "incorrect";
-          if (soundEnabled) incorrectSound.play();
-        }
-        explanationEl.textContent =
-          quizData.questions[currentQuestionIndex].explanation;
-        userAnswers.push({
-          question: currentQuestionIndex,
-          selected: userAnswer,
-          correct: isCorrect,
-        });
-        nextBtn.disabled = false;
-        optionsEl
-          .querySelectorAll(".option")
-          .forEach((div) => (div.style.pointerEvents = "none"));
-        gsap.to("#result", {
-          opacity: 0,
-          y: -10,
-          duration: 0.3,
-          onComplete: () => {
-            gsap.to("#result", { opacity: 1, y: 0, duration: 0.3 });
-          },
-        });
-      }
-
-      function showResult() {
-        clearInterval(timer);
-        quizContainer.classList.add("d-none");
-        resultContainer.classList.remove("d-none");
-        const totalQuestions = quizData.questions.length;
-        finalScoreEl.textContent = `${score} / ${totalQuestions} (${(
-          (score / totalQuestions) *
-          100
-        ).toFixed(2)}%)`;
-        totalTimeEl.textContent = `${Math.floor(totalTime / 60)}:${(
-          totalTime % 60
-        )
-          .toString()
-          .padStart(2, "0")}`;
-        if (score === totalQuestions) {
-          badgeEl.innerHTML =
-            '<span class="badge bg-success">परफेक्ट स्कोर! 🎉</span>';
-        } else if (score / totalQuestions >= 0.8) {
-          badgeEl.innerHTML =
-            '<span class="badge bg-primary">शानदार प्रदर्शन! 🥳</span>';
-        } else {
-          badgeEl.innerHTML =
-            '<span class="badge bg-warning">अच्छा प्रयास! 😊</span>';
-        }
-        resultTableBody.innerHTML = "";
-        userAnswers.forEach((answer) => {
-          const q = quizData.questions[answer.question];
-          const row = document.createElement("tr");
-          row.innerHTML = `
-                    <td>${answer.question + 1}. ${sanitize(q.question)}</td>
-                    <td>${
-                      answer.selected
-                        ? sanitize(q.options[answer.selected])
-                        : "कोई उत्तर नहीं"
-                    }</td>
-                    <td>${sanitize(q.options[q.answer])}</td>
-                    <td>${answer.correct ? "सही" : "गलत"}</td>
-                `;
-          resultTableBody.appendChild(row);
-        });
-        const ctx = document.getElementById("result-chart").getContext("2d");
-        new Chart(ctx, {
-          type: "pie",
-          data: {
-            labels: ["सही", "गलत", "मिस्ड"],
-            datasets: [
-              {
-                data: [
-                  score,
-                  userAnswers.filter((a) => !a.correct && a.selected).length,
-                  userAnswers.filter((a) => !a.selected).length,
-                ],
-                backgroundColor: ["#28a745", "#dc3545", "#6c757d"],
-              },
-            ],
-          },
-          options: { responsive: true },
-        });
-        gsap.from("#result-container", {
-          opacity: 0,
-          scale: 0.9,
-          duration: 0.5,
-        });
-      }
-
-      function setTheme(theme) {
-        if (theme === "dark") {
-          document.body.classList.add("dark-theme");
-          themeToggle.textContent = "Light Theme";
-        } else {
-          document.body.classList.remove("dark-theme");
-          themeToggle.textContent = "Dark Theme";
-        }
-        localStorage.setItem("theme", theme);
-      }
-      if (localStorage.getItem("theme")) {
-        setTheme(localStorage.getItem("theme"));
-      } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-        setTheme("dark");
-      }
-      themeToggle.addEventListener("click", () => {
-        setTheme(
-          document.body.classList.contains("dark-theme") ? "light" : "dark"
-        );
-      });
-
-      function setSound(enabled) {
-        soundEnabled = enabled;
-        soundToggle.textContent = `Sound: ${soundEnabled ? "On" : "Off"}`;
-        localStorage.setItem("sound", soundEnabled);
-      }
-      if (localStorage.getItem("sound") !== null) {
-        setSound(localStorage.getItem("sound") === "true");
-      } else {
-        setSound(true);
-      }
-      soundToggle.addEventListener("click", () => {
-        setSound(!soundEnabled);
-      });
-
-      startQuizBtn.addEventListener("click", () => {
-        userName = userNameInput.value.trim() || "अनाम";
-        TIME_PER_QUESTION = parseInt(timePerQuestionInput.value, 10) || 30;
-        welcomeContainer.classList.add("d-none");
-        quizContainer.classList.remove("d-none");
-        loadQuestion();
-      });
-
-      nextBtn.addEventListener("click", () => {
-        currentQuestionIndex++;
-        if (currentQuestionIndex < quizData.questions.length) {
-          loadQuestion();
-        } else {
-          showResult();
-        }
-      });
-
-      retryQuizBtn.addEventListener("click", () => {
-        currentQuestionIndex = 0;
-        score = 0;
-        totalTime = 0;
-        userAnswers = [];
-        resultContainer.classList.add("d-none");
-        quizData.questions = shuffle([...quizData.questions]);
-        quizContainer.classList.remove("d-none");
-        loadQuestion();
-      });
-
-      shareResultBtn.addEventListener("click", () => {
-        if (navigator.share) {
-          navigator
-            .share({
-              title: "मेरा क्विज स्कोर",
-              text: `${userName} ने क्विज में ${score}/${quizData.questions.length} स्कोर किया!`,
-              url:
-                window.location.href + "?quiz=" + encodeURIComponent(quizUrl),
-            })
-            .catch((err) => console.error("Share failed:", err));
-        } else {
-          alert("आपका ब्राउज़र शेयर फीचर सपोर्ट नहीं करता।");
-        }
-      });
-
-      downloadPdfBtn.addEventListener("click", () => {
-        const element = resultContainer;
-        html2pdf()
-          .from(element)
-          .set({
-            filename: `${userName}_quiz_report.pdf`,
-            margin: 10,
-            jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-          })
-          .save();
-      });
-
-      let touchStartX = 0;
-      quizContainer.addEventListener("touchstart", (e) => {
-        touchStartX = e.changedTouches[0].screenX;
-      });
-      quizContainer.addEventListener("touchend", (e) => {
-        const touchEndX = e.changedTouches[0].screenX;
-        if (touchEndX - touchStartX > 50 && !nextBtn.disabled) {
-          nextBtn.click();
-        }
-      });
-
-      quizUpload.addEventListener("change", (e) => {
-        const file = e.target.files[0];
+      // Handle JSON file upload
+      quizUpload.addEventListener("change", (event) => {
+        const file = event.target.files[0];
         if (file && file.type === "application/json") {
           const reader = new FileReader();
-          reader.onload = (event) => {
+          reader.onload = (e) => {
             try {
-              const data = JSON.parse(event.target.result);
-              if (validateQuizData(data)) {
-                quizData = data;
-                quizData.questions = shuffle([...quizData.questions]);
-                totalQuestionsEl.textContent = quizData.questions.length;
-                uploadError.style.display = "none";
-                quizUrl = URL.createObjectURL(
-                  new Blob([JSON.stringify(data)], { type: "application/json" })
-                );
-                shareUrl.classList.remove("d-none");
-                shareLink.href =
-                  window.location.href.split("?")[0] +
-                  "?quiz=" +
-                  encodeURIComponent(quizUrl);
-                shareLink.textContent = shareLink.href;
+              quizData = JSON.parse(e.target.result).questions;
+              if (quizData && Array.isArray(quizData) && quizData.length > 0) {
+                totalQuestionsSpan.textContent = quizData.length;
+                totalQuestionsQuiz.textContent = quizData.length;
+                startQuizBtn.disabled = false;
+                loading.classList.add("hidden");
+                welcomeSection.classList.remove("hidden");
               } else {
-                uploadError.textContent =
-                  "अमान्य JSON प्रारूप! कृपया सही प्रारूप का उपयोग करें।";
-                uploadError.style.display = "block";
-                quizData = null;
+                alert("JSON फ़ाइल में वैध प्रश्न नहीं हैं।");
               }
             } catch (error) {
-              uploadError.textContent =
-                "JSON पार्सिंग में त्रुटि: " + error.message;
-              uploadError.style.display = "block";
-              quizData = null;
+              alert("JSON फ़ाइल पार्स करने में त्रुटि: " + error.message);
             }
           };
           reader.readAsText(file);
         } else {
-          uploadError.textContent = "कृपया एक वैध JSON फाइल चुनें।";
-          uploadError.style.display = "block";
-          quizData = null;
+          alert("कृपया एक वैध JSON फ़ाइल अपलोड करें।");
         }
       });
 
-      copyLinkBtn.addEventListener("click", () => {
-        navigator.clipboard
-          .writeText(shareLink.href)
-          .then(() => {
-            alert("लिंक कॉपी हो गया!");
-          })
-          .catch((err) => console.error("Copy failed:", err));
+      // Theme toggle
+      themeToggle.addEventListener("click", () => {
+        isDarkTheme = !isDarkTheme;
+        document.body.classList.toggle("dark", isDarkTheme);
+        document.body.classList.toggle("light", !isDarkTheme);
+        themeToggle.textContent = isDarkTheme ? "लाइट थीम" : "डार्क थीम";
       });
 
-      loadingSpinner.style.display = "block";
-      fetch("quiz.json")
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error("Network response was not ok");
-          }
-          return response.json();
-        })
-        .then((data) => {
-          quizData = data;
-          quizData.questions = shuffle([...quizData.questions]);
-          totalQuestionsEl.textContent = quizData.questions.length;
-          welcomeContainer.classList.remove("d-none");
-          loadingSpinner.style.display = "none";
-        })
-        .catch((error) => {
-          console.error("Error loading quiz data:", error);
-          questionEl.textContent =
-            "क्विज डेटा लोड करने में त्रुटि: " + error.message;
-          loadingSpinner.style.display = "none";
+      // Sound toggle
+      soundToggle.addEventListener("click", () => {
+        isSoundOn = !isSoundOn;
+        soundToggle.textContent = `ध्वनि: ${isSoundOn ? "चालू" : "बंद"}`;
+      });
+
+      // Copy link
+      copyLinkBtn.addEventListener("click", () => {
+        navigator.clipboard.write(shareLink.value).then(() => {
+          alert("लिंक कॉपी हो गया!");
+        });
+      });
+
+      // Start quiz
+      startQuizBtn.addEventListener("click", () => {
+        if (!userNameInput.value.trim()) {
+          userNameInput.classList.add("border-red-500");
+          alert("कृपया अपना नाम दर्ज करें।");
+          return;
+        }
+        userNameInput.classList.remove("border-red-500");
+        timePerQuestion = parseInt(timePerQuestionInput.value) || 30;
+        welcomeSection.classList.add("hidden");
+        quizSection.classList.remove("hidden");
+        currentQuestionIndex = 0;
+        userAnswers = [];
+        score = 0;
+        totalTimeTaken = 0;
+        loadQuestion();
+      });
+
+      // Load question
+      function loadQuestion() {
+        const question = quizData[currentQuestionIndex];
+        timeLeft = timePerQuestion;
+        timerDisplay.textContent = timeLeft;
+        currentQuestionSpan.textContent = currentQuestionIndex + 1;
+        progressBar.style.width = `${
+          ((currentQuestionIndex + 1) / quizData.length) * 100
+        }%`;
+        questionContainer.innerHTML = `
+        <p class="mb-4 text-lg">${question.id}. ${question.question}</p>
+        <div>
+          ${Object.entries(question.options)
+            .map(
+              ([key, value]) => `
+            <label class="option-label block mb-2 p-2 rounded-lg">
+              <input type="radio" name="option" value="${key}" class="mr-2" data-explanation="${
+                question.explanation
+              }">
+              ${key.toUpperCase()}. ${value}
+            </label>
+          `
+            )
+            .join("")}
+        </div>
+      `;
+        explanationDiv.classList.add("hidden");
+        timerCircle.classList.remove("paused");
+
+        // Add event listeners to radio buttons for immediate explanation
+        const options = document.querySelectorAll('input[name="option"]');
+        options.forEach((option) => {
+          option.addEventListener("change", (e) => {
+            const selectedValue = e.target.value;
+            const question = quizData[currentQuestionIndex];
+            const isCorrect = selectedValue === question.answer;
+            const label = e.target.parentElement;
+            label.classList.add(isCorrect ? "correct" : "incorrect");
+            explanationDiv.innerHTML = `<p>${question.explanation}</p>`;
+            explanationDiv.classList.remove("hidden");
+            if (isSoundOn) {
+              if (isCorrect) correctSound.play();
+              else incorrectSound.play();
+            }
+            options.forEach((opt) => {
+              if (opt !== e.target) opt.disabled = true;
+            });
+            timerCircle.classList.add("paused");
+            clearInterval(timerInterval);
+          });
         });
 
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker
-          .register("/service-worker.js")
-          .catch((err) =>
-            console.error("Service Worker registration failed:", err)
-          );
+        startTimer();
       }
+
+      // Start timer
+      function startTimer() {
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+          timeLeft--;
+          timerDisplay.textContent = timeLeft;
+          if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            saveAnswer();
+            nextQuestion();
+          }
+        }, 1000);
+      }
+
+      // Save answer and move to next question
+      nextQuestionBtn.addEventListener("click", () => {
+        saveAnswer();
+        nextQuestion();
+      });
+
+      function saveAnswer() {
+        const selectedOption = document.querySelector(
+          'input[name="option"]:checked'
+        );
+        const question = quizData[currentQuestionIndex];
+        const userAnswer = selectedOption ? selectedOption.value : null;
+        userAnswers[currentQuestionIndex] = {
+          question: question.question,
+          userAnswer: userAnswer
+            ? question.options[userAnswer]
+            : "कोई उत्तर नहीं",
+          userAnswerKey: userAnswer,
+          correctAnswer: question.options[question.answer],
+          correctAnswerKey: question.answer,
+          isCorrect: userAnswer === question.answer,
+          explanation: question.explanation,
+        };
+        if (userAnswer === question.answer) {
+          score++;
+        }
+        totalTimeTaken += timePerQuestion - timeLeft;
+      }
+
+      function nextQuestion() {
+        currentQuestionIndex++;
+        if (currentQuestionIndex < quizData.length) {
+          loadQuestion();
+        } else {
+          clearInterval(timerInterval);
+          showResults();
+        }
+      }
+
+      // Show results
+      function showResults() {
+        quizSection.classList.add("hidden");
+        resultSection.classList.remove("hidden");
+        scoreDisplay.textContent = `${score}/${quizData.length}`;
+        totalTimeDisplay.textContent = `${totalTimeTaken} सेकंड`;
+        resultTable.innerHTML = userAnswers
+          .map(
+            (answer, index) => `
+        <tr class="dark:bg-gray-800">
+          <td class="border p-2">${answer.question}</td>
+          <td class="border p-2">${answer.userAnswer}</td>
+          <td class="border p-2">${answer.correctAnswer}</td>
+          <td class="border p-2 ${
+            answer.isCorrect ? "text-green-500" : "text-red-500"
+          }">
+            ${answer.isCorrect ? "सही" : "गलत"}
+          </td>
+        </tr>
+      `
+          )
+          .join("");
+      }
+
+      // Download report
+      downloadReportBtn.addEventListener("click", () => {
+        const report = `
+नाम: ${userNameInput.value}
+स्कोर: ${score}/${quizData.length}
+कुल समय: ${totalTimeTaken} सेकंड
+
+प्रश्न-वार परिणाम:
+${userAnswers
+  .map(
+    (answer, index) => `
+प्रश्न ${index + 1}: ${answer.question}
+आपका उत्तर: ${answer.userAnswer}
+सही उत्तर: ${answer.correctAnswer}
+परिणाम: ${answer.isCorrect ? "सही" : "गलत"}
+विवरण: ${answer.explanation}
+`
+  )
+  .join("\n")}
+      `;
+        const blob = new Blob([report], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "quiz_report.txt";
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+
+      // Share result
+      shareResultBtn.addEventListener("click", () => {
+        const resultText = `मैंने ${userNameInput.value} के रूप में क्विज में ${score}/${quizData.length} स्कोर किया, कुल ${totalTimeTaken} सेकंड में!`;
+        navigator.clipboard.write(resultText).then(() => {
+          alert("रिजल्ट कॉपी हो गया!");
+        });
+      });
+
+      // Try again with confirmation
+      tryAgainBtn.addEventListener("click", () => {
+        confirmModal.classList.remove("hidden");
+      });
+
+      confirmTryAgain.addEventListener("click", () => {
+        confirmModal.classList.add("hidden");
+        resultSection.classList.add("hidden");
+        welcomeSection.classList.remove("hidden");
+        quizData = [];
+        userAnswers = [];
+        score = 0;
+        totalTimeTaken = 0;
+        quizUpload.value = "";
+        startQuizBtn.disabled = true;
+        totalQuestionsSpan.textContent = "";
+        totalQuestionsQuiz.textContent = "";
+      });
+
+      cancelTryAgain.addEventListener("click", () => {
+        confirmModal.classList.add("hidden");
+      });
+
+      // Initialize
+      loading.classList.remove("hidden");
+      setTimeout(() => {
+        loading.classList.add("hidden");
+        welcomeSection.classList.remove("hidden");
+      }, 1000);
     </script>
   </body>
 </html>
