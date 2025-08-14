@@ -504,17 +504,17 @@
         resultTable.innerHTML = userAnswers
           .map(
             (answer, index) => `
-        <tr class="dark:bg-gray-800">
-          <td class="border p-2">${answer.question}</td>
-          <td class="border p-2">${answer.userAnswer}</td>
-          <td class="border p-2">${answer.correctAnswer}</td>
-          <td class="border p-2 ${
-            answer.isCorrect ? "text-green-500" : "text-red-500"
-          }">
-            ${answer.isCorrect ? "सही" : "गलत"}
-          </td>
-        </tr>
-      `
+    <tr class="bg-white dark:bg-gray-800">
+      <td class="border border-gray-300 dark:border-gray-600 p-2 text-gray-900 dark:text-gray-100">${answer.question}</td>
+      <td class="border border-gray-300 dark:border-gray-600 p-2 text-gray-900 dark:text-gray-100">${answer.userAnswer}</td>
+      <td class="border border-gray-300 dark:border-gray-600 p-2 text-gray-900 dark:text-gray-100">${answer.correctAnswer}</td>
+      <td class="border border-gray-300 dark:border-gray-600 p-2 ${
+        answer.isCorrect ? "text-green-500" : "text-red-500"
+      } text-gray-900 dark:text-gray-100">
+        ${answer.isCorrect ? "सही" : "गलत"}
+      </td>
+    </tr>
+  `
           )
           .join("");
       }
