@@ -206,11 +206,18 @@
           <span id="timer" class="text-lg font-semibold mr-2">30</span>
           <span id="timerCircle" class="timer-circle"></span>
         </div>
-        <button
-          id="nextQuestion"
-          class="bg-blue-600 text-white px-6 py-3 rounded-lg w-full hover:bg-blue-700">
-          अगला प्रश्न
-        </button>
+        <div class="flex space-x-4">
+          <button
+            id="prevQuestion"
+            class="bg-gray-600 text-white px-6 py-3 rounded-lg w-full hover:bg-gray-700">
+            पिछला प्रश्न
+          </button>
+          <button
+            id="nextQuestion"
+            class="bg-blue-600 text-white px-6 py-3 rounded-lg w-full hover:bg-blue-700">
+            अगला प्रश्न
+          </button>
+        </div>
         <div
           id="explanation"
           class="mt-4 hidden text-gray-700 dark:text-gray-300 p-4 rounded-lg bg-gray-100 dark:bg-gray-700"></div>
@@ -298,6 +305,7 @@
       const timerDisplay = document.getElementById("timer");
       const timerCircle = document.getElementById("timerCircle");
       const nextQuestionBtn = document.getElementById("nextQuestion");
+      const prevQuestionBtn = document.getElementById("prevQuestion");
       const explanationDiv = document.getElementById("explanation");
       const scoreDisplay = document.getElementById("score");
       const totalTimeDisplay = document.getElementById("totalTime");
@@ -396,50 +404,71 @@
         progressBar.style.width = `${
           ((currentQuestionIndex + 1) / quizData.length) * 100
         }%`;
+
+        // Build options HTML
         questionContainer.innerHTML = `
-        <p class="mb-4 text-lg">${question.id}. ${question.question}</p>
-        <div>
-          ${Object.entries(question.options)
-            .map(
-              ([key, value]) => `
-            <label class="option-label block mb-2 p-2 rounded-lg">
-              <input type="radio" name="option" value="${key}" class="mr-2" data-explanation="${
-                question.explanation
-              }">
-              ${key.toUpperCase()}. ${value}
-            </label>
-          `
-            )
-            .join("")}
-        </div>
-      `;
+    <p class="mb-4 text-lg">${question.id}. ${question.question}</p>
+    <div>
+      ${Object.entries(question.options)
+        .map(
+          ([key, value]) => `
+        <label class="option-label block mb-2 p-2 rounded-lg">
+          <input type="radio" name="option" value="${key}" class="mr-2" data-explanation="${question.explanation}">
+          ${key.toUpperCase()}. ${value}
+        </label>
+      `
+        )
+        .join("")}
+    </div>
+  `;
         explanationDiv.classList.add("hidden");
         timerCircle.classList.remove("paused");
 
-        // Add event listeners to radio buttons for immediate explanation
+        // Restore previous answer if exists
+        const prevAnswer = userAnswers[currentQuestionIndex];
         const options = document.querySelectorAll('input[name="option"]');
-        options.forEach((option) => {
-          option.addEventListener("change", (e) => {
-            const selectedValue = e.target.value;
-            const question = quizData[currentQuestionIndex];
-            const isCorrect = selectedValue === question.answer;
-            const label = e.target.parentElement;
-            label.classList.add(isCorrect ? "correct" : "incorrect");
-            explanationDiv.innerHTML = `<p>${question.explanation}</p>`;
-            explanationDiv.classList.remove("hidden");
-            if (isSoundOn) {
-              if (isCorrect) correctSound.play();
-              else incorrectSound.play();
+        if (prevAnswer && prevAnswer.userAnswerKey) {
+          options.forEach((option) => {
+            if (option.value === prevAnswer.userAnswerKey) {
+              option.checked = true;
+              // Mark correct/incorrect
+              const isCorrect = prevAnswer.isCorrect;
+              const label = option.parentElement;
+              label.classList.add(isCorrect ? "correct" : "incorrect");
+              explanationDiv.innerHTML = `<p>${question.explanation}</p>`;
+              explanationDiv.classList.remove("hidden");
+              // Disable all options
+              options.forEach((opt) => (opt.disabled = true));
+              timerCircle.classList.add("paused");
+              clearInterval(timerInterval);
             }
-            options.forEach((opt) => {
-              if (opt !== e.target) opt.disabled = true;
-            });
-            timerCircle.classList.add("paused");
-            clearInterval(timerInterval);
           });
-        });
+        } else {
+          // Only add event listeners if not already answered
+          options.forEach((option) => {
+            option.addEventListener("change", (e) => {
+              const selectedValue = e.target.value;
+              const isCorrect = selectedValue === question.answer;
+              const label = e.target.parentElement;
+              label.classList.add(isCorrect ? "correct" : "incorrect");
+              explanationDiv.innerHTML = `<p>${question.explanation}</p>`;
+              explanationDiv.classList.remove("hidden");
+              if (isSoundOn) {
+                if (isCorrect) correctSound.play();
+                else incorrectSound.play();
+              }
+              options.forEach((opt) => {
+                if (opt !== e.target) opt.disabled = true;
+              });
+              timerCircle.classList.add("paused");
+              clearInterval(timerInterval);
+            });
+          });
+          startTimer();
+        }
 
-        startTimer();
+        // Disable prev button on first question
+        prevQuestionBtn.disabled = currentQuestionIndex === 0;
       }
 
       // Start timer
@@ -460,6 +489,15 @@
       nextQuestionBtn.addEventListener("click", () => {
         saveAnswer();
         nextQuestion();
+      });
+
+      // Add event listener for previous question
+      prevQuestionBtn.addEventListener("click", () => {
+        saveAnswer();
+        if (currentQuestionIndex > 0) {
+          currentQuestionIndex--;
+          loadQuestion();
+        }
       });
 
       function saveAnswer() {
